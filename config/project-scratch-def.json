@@ -1,6 +1,6 @@
 {
   "orgName": "MyProject",
-  "edition": "Developer",
+  "edition": "developer",
   "features": ["EnableSetPasswordInApi"],
   "settings": {
     "lightningExperienceSettings": {
