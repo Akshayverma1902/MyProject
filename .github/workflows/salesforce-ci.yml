@@ -14,8 +14,14 @@ jobs:
       - name: Install Salesforce CLI
         run: npm install -g @salesforce/cli
 
+      - name: Authorize Dev Hub
+        run: |
+          echo "${{ secrets.SFDX_AUTH_URL }}" > sfdx_auth.txt
+          sf org login sfdx-url --sfdx-url-file sfdx_auth.txt --set-default-dev-hub --alias MyDevHub
+          rm sfdx_auth.txt
+
       - name: Create Scratch Org
-        run: sf org create scratch --definition-file config/project-scratch-def.json --alias ciOrg --duration-days 1
+        run: sf org create scratch --definition-file config/project-scratch-def.json --alias ciOrg --duration-days 1 --target-dev-hub MyDevHub
 
       - name: Copy environment-specific files
         run: |
@@ -30,4 +36,4 @@ jobs:
 
       - name: Delete Scratch Org
         if: always()
-        run: sf org delete scratch --target-org ciOrg --no-prompt
+        run: sf org delete scratch --target-org ciOrg --no-prompt || true
