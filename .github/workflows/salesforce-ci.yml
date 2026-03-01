@@ -1,0 +1,39 @@
+name: Salesforce CI/CD
+
+on:
+  pull_request:
+    branches: [development, qa, uat, main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install Salesforce CLI
+        run: npm install -g @salesforce/cli
+
+      - name: Authorize Dev Hub
+        run: |
+          echo "${{ secrets.SFDX_AUTH_URL }}" > sfdx_auth.txt
+          sf org login sfdx-url --sfdx-url-file sfdx_auth.txt --set-default-dev-hub --alias MyDevHub
+          rm sfdx_auth.txt
+
+      - name: Create Scratch Org
+        run: sf org create scratch --definition-file config/project-scratch-def.json --alias ciOrg --duration-days 1 --target-dev-hub MyDevHub
+
+      - name: Copy environment-specific files
+        run: |
+          cp -f env/${{ github.base_ref }}/labels/* force-app/main/default/labels/ || true
+          cp -f env/${{ github.base_ref }}/settings/* force-app/main/default/settings/ || true
+
+      - name: Push Source to Scratch Org
+        run: sf project deploy start --target-org ciOrg
+
+      - name: Run Apex Tests
+        run: sf apex run test --target-org ciOrg --wait 10 --result-format human
+
+      - name: Delete Scratch Org
+        if: always()
+        run: sf org delete scratch --target-org ciOrg --no-prompt || true
